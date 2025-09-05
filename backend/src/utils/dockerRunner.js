@@ -1,72 +1,69 @@
 const { spawn } = require("child_process");
 const path = require("path");
 const fs = require("fs");
+const { v4: uuidv4 } = require("uuid");
 
 const DOCKER_BIN =
   process.platform === "win32"
     ? "C:\\Program Files\\Docker\\Docker\\resources\\bin\\docker.exe"
     : "docker";
 
-/**
- * Run user code in Docker (Python or C)
- * @param {string} code - Source code
- * @param {string} lang - "python" | "c"
- * @param {string} stdinInput - Optional user input (for scanf/input)
- */
-module.exports = function runCode(code, lang = "python", stdinInput = "") {
+module.exports = function runCode(code, lang = "python") {
   return new Promise((resolve, reject) => {
-    const tmpDir = "/tmp"; // ✅ shared volume between host & container
-    if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
+    // 1️⃣ Unique temp dir per execution
+    const sessionId = uuidv4();
+    const tmpDir = path.join("/tmp", sessionId);
+    fs.mkdirSync(tmpDir, { recursive: true });
 
-    let codeFile;
-    let args;
+    // 2️⃣ Write code file
+    const fileName = lang === "c" ? "code.c" : "code.py";
+    const filePath = path.join(tmpDir, fileName);
+    fs.writeFileSync(filePath, code);
 
+    // 3️⃣ Select Docker image + command
+    let dockerArgs;
     if (lang === "python") {
-      codeFile = path.join(tmpDir, "code.py");
-      fs.writeFileSync(codeFile, code);
-
-      args = [
+      dockerArgs = [
         "run",
         "--rm",
-        "--network", "none",
-        "-m", "128m",
+        "--network",
+        "none",
+        "-m",
+        "128m",
         "--cpus=0.5",
-        "-v", "/tmp:/tmp",
-        "codeguard-python",
-        "timeout", "5", // ⏱️ kill if runs longer than 5 sec
-        "python", "/tmp/code.py",
+        "-v",
+        `${tmpDir}:/app`,
+        "python:3",
+        "python",
+        "/app/code.py",
       ];
     } else if (lang === "c") {
-      codeFile = path.join(tmpDir, "code.c");
-      fs.writeFileSync(codeFile, code);
-
-      args = [
+      dockerArgs = [
         "run",
         "--rm",
-        "--network", "none",
-        "-m", "128m",
+        "--network",
+        "none",
+        "-m",
+        "128m",
         "--cpus=0.5",
-        "-v", "/tmp:/tmp",
+        "-v",
+        `${tmpDir}:/app`,
         "codeguard-c",
-        "sh", "-c",
-        "gcc /tmp/code.c -o /tmp/a.out && timeout 5 /tmp/a.out",
+        "sh",
+        "-c",
+        "gcc /app/code.c -o /app/a.out && chmod +x /app/a.out && timeout 5 /app/a.out",
       ];
     } else {
-      return reject(new Error("Unsupported language"));
+      return reject(new Error(`Unsupported language: ${lang}`));
     }
 
-    console.log("🔹 Running command:", DOCKER_BIN, args.join(" "));
+    console.log("🔹 Running command:", DOCKER_BIN, dockerArgs.join(" "));
 
-    const docker = spawn(DOCKER_BIN, args, { shell: false });
+    // 4️⃣ Spawn docker process
+    const docker = spawn(DOCKER_BIN, dockerArgs, { shell: false });
 
     let stdout = "";
     let stderr = "";
-
-    // ✅ Pipe input if provided
-    if (stdinInput) {
-      docker.stdin.write(stdinInput + "\n");
-      docker.stdin.end();
-    }
 
     docker.stdout.on("data", (data) => (stdout += data.toString()));
     docker.stderr.on("data", (data) => (stderr += data.toString()));
@@ -76,15 +73,24 @@ module.exports = function runCode(code, lang = "python", stdinInput = "") {
       console.log("🔹 STDOUT:", stdout);
       console.log("🔹 STDERR:", stderr);
 
-      if (code !== 0) {
-        return reject(new Error(stderr || "Execution error"));
+      // 5️⃣ Cleanup temp folder
+      try {
+        fs.rmSync(tmpDir, { recursive: true, force: true });
+      } catch (e) {
+        console.error("⚠️ Cleanup failed:", e);
       }
 
-      resolve({ output: stdout.trim(), error: stderr.trim() });
+      if (code !== 0) {
+        return reject(new Error(stderr || "Execution failed"));
+      }
+      resolve({ output: stdout, error: stderr });
     });
 
     docker.on("error", (err) => {
       console.error("❌ Failed to run Docker:", err);
+      try {
+        fs.rmSync(tmpDir, { recursive: true, force: true });
+      } catch (e) {}
       reject(new Error(`Failed to run Docker: ${err.message}`));
     });
   });
