@@ -11,7 +11,7 @@ services:
     volumes:
       - ./backend:/app                        # backend source code
       - /var/run/docker.sock:/var/run/docker.sock   # allow backend to run Docker
-      - /tmp:/tmp                  
+      - /tmp:/tmp                             # ✅ share system tmp with host + runtimes
     environment:
       - NODE_ENV=development
       - PORT=5000
@@ -45,6 +45,8 @@ services:
       context: ./backend
       dockerfile: Dockerfile.python
     image: codeguard-python
+    volumes:
+      - /tmp:/tmp   # ✅ share host tmp
     restart: unless-stopped
 
   # ✅ Custom C runtime
@@ -53,8 +55,9 @@ services:
       context: ./backend
       dockerfile: Dockerfile.c
     image: codeguard-c
+    volumes:
+      - /tmp:/tmp   # ✅ share host tmp
     restart: unless-stopped
 
 volumes:
   pgdata:
-  codeguard_tmp:   # ✅ new persistent tmp volume
