@@ -4,19 +4,19 @@ const router = express.Router();
 const runCode = require("../utils/dockerRunner"); // ✅ generic runner
 
 router.post("/", async (req, res) => {
-  const { code, lang = "python", stdinInput = "" } = req.body; 
+  const { code, lang } = req.body;
+  const userId = req.user?.id || "guest"; // use auth ID or fallback
 
-  if (!code) {
-    return res.status(400).json({ error: "No code provided." });
-  }
+  if (!code) return res.status(400).json({ error: "No code provided." });
 
   try {
-    const result = await runCode(code, lang, stdinInput);
+    const result = await runCode(lang, code, userId);
     res.json(result);
   } catch (err) {
-    console.error("❌ Execution error:", err.message);
-    res.status(500).json({ error: err.message || "Execution failed." });
+    res.status(500).json({ error: err.message });
   }
 });
+
+
 
 module.exports = router;
