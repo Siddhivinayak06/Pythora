@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useTheme } from "next-themes";
-import Editor from "@monaco-editor/react";
+import Editor, { loader } from "@monaco-editor/react";
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,6 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { ChevronDown } from "lucide-react";
+
 
 export default function CodeEditor({
   code,
@@ -31,308 +33,166 @@ export default function CodeEditor({
 
   const lockedRef = useRef(locked);
   const editorRef = useRef(null);
-
+  // ✅ Keep a ref in sync with language state
+  const langRef = useRef(lang);
   useEffect(() => {
-    lockedRef.current = locked;
-  }, [locked]);
-
+    langRef.current = lang;
+  }, [lang]);
   const showToast = (message) => {
     setShowWarning(message);
     setTimeout(() => setShowWarning(false), 2000);
   };
+  useEffect(() => {
+    if (!window.monacoProvidersRegistered) {
+      window.monacoProvidersRegistered = true;
 
-  const handleEditorMount = (editor, monaco) => {
+      // ✅ Simplified IntelliSense for Python + C
+      loader.init().then((monaco) => {
+        monaco.languages.registerCompletionItemProvider("python", {
+          triggerCharacters: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ".split(""),
+provideCompletionItems: (model, position) => {
+  return {
+    suggestions: [
+      { label: "def", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "def", documentation: "Define a function" },
+      { label: "int", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "int", documentation: "Integer data type" },
+      { label: "class", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "class", documentation: "Define a class" },
+      { label: "if", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "if", documentation: "If statement" },
+      { label: "elif", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "elif", documentation: "Else if statement" },
+      { label: "else", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "else", documentation: "Else statement" },
+      { label: "for", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "for", documentation: "For loop" },
+      { label: "while", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "while", documentation: "While loop" },
+      { label: "break", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "break", documentation: "Exit the nearest loop" },
+      { label: "continue", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "continue", documentation: "Skip to next loop iteration" },
+      { label: "lambda", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "lambda", documentation: "Anonymous function" },
+      { label: "pass", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "pass", documentation: "Do nothing (placeholder)" },
+      { label: "True", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "True", documentation: "Boolean true value" },
+      { label: "False", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "False", documentation: "Boolean false value" },
+      { label: "None", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "None", documentation: "Null value in Python" },
+      { label: "print", kind: monaco.languages.CompletionItemKind.Function, insertText: "print", documentation: "Print output" },
+      { label: "len", kind: monaco.languages.CompletionItemKind.Function, insertText: "len", documentation: "Length of iterable" },
+      { label: "range", kind: monaco.languages.CompletionItemKind.Function, insertText: "range", documentation: "Generate range" },
+      { label: "input", kind: monaco.languages.CompletionItemKind.Function, insertText: "input", documentation: "Get user input" },
+      { label: "import math", kind: monaco.languages.CompletionItemKind.Module, insertText: "import math", documentation: "Math module" },
+      { label: "import os", kind: monaco.languages.CompletionItemKind.Module, insertText: "import os", documentation: "OS module" }
+    ]
+  };
+}
+
+        });
+
+        monaco.languages.registerCompletionItemProvider("c", {
+          triggerCharacters: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ#".split(""),
+          provideCompletionItems: (model, position) => {
+            return {
+              suggestions: [
+                { label: "#include <stdio.h>", kind: monaco.languages.CompletionItemKind.Snippet, insertText: "#include <stdio.h>", documentation: "Standard I/O library",filterText: "#" },
+                { label: "#include <stdlib.h>", kind: monaco.languages.CompletionItemKind.Snippet, insertText: "#include <stdlib.h>", documentation: "Standard library" ,filterText: "#"},
+                { label: "#include <string.h>", kind: monaco.languages.CompletionItemKind.Snippet, insertText: "#include <string.h>", documentation: "String manipulation library" ,filterText: "#"},
+                { label: "#include <math.h>", kind: monaco.languages.CompletionItemKind.Snippet, insertText: "#include <math.h>", documentation: "Math library" ,filterText: "#"},
+                { label: "int", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "int", documentation: "Integer data type" },
+                { label: "char", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "char", documentation: "Character data type" },
+                { label: "float", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "float", documentation: "Floating-point data type" },
+                { label: "main", kind: monaco.languages.CompletionItemKind.Function, insertText: "main", documentation: "Main function" },
+                { label: "for", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "for", documentation: "For loop" },
+                { label: "while", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "while", documentation: "While loop" },
+                { label: "do", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "do", documentation: "Do-while loop" },
+                { label: "if", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "if", documentation: "If statement" },
+                { label: "else", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "else", documentation: "Else statement" },
+                { label: "switch", kind: monaco.languages.CompletionItemKind.Keyword, insertText: "switch", documentation: "Switch statement" },
+                { label: "printf", kind: monaco.languages.CompletionItemKind.Function, insertText: "printf", documentation: "Print output" },
+                { label: "scanf", kind: monaco.languages.CompletionItemKind.Function, insertText: "scanf", documentation: "Read input" },
+                { label: "malloc", kind: monaco.languages.CompletionItemKind.Function, insertText: "malloc", documentation: "Allocate memory" },
+                { label: "free", kind: monaco.languages.CompletionItemKind.Function, insertText: "free", documentation: "Free memory" },
+                { label: "strlen", kind: monaco.languages.CompletionItemKind.Function, insertText: "strlen", documentation: "Get string length" },
+                { label: "strcpy", kind: monaco.languages.CompletionItemKind.Function, insertText: "strcpy", documentation: "Copy string" },
+                { label: "strcat", kind: monaco.languages.CompletionItemKind.Function, insertText: "strcat", documentation: "Concatenate strings" },
+                { label: "pow", kind: monaco.languages.CompletionItemKind.Function, insertText: "pow", documentation: "Raise base to exponent" },
+                { label: "sqrt", kind: monaco.languages.CompletionItemKind.Function, insertText: "sqrt", documentation: "Square root" }
+              ]
+            };
+          }
+        });
+      });
+    }
+  }, []);
+
+  const handleEditorMount = (editor) => {
     editorRef.current = editor;
 
     // Disable default context menu
     editor.updateOptions({ contextmenu: false });
 
-    // Capture right-click on editor DOM node
+    // Right-click custom context menu
     const domNode = editor.getDomNode();
     if (domNode) {
       domNode.addEventListener("contextmenu", (e) => {
         e.preventDefault();
         e.stopPropagation();
-
         if (!lockedRef.current) {
-          // show custom context menu at mouse position
-          setContextMenuPos({ x: e.clientX, y: e.clientY });
+          const rect = domNode.getBoundingClientRect();
+          setContextMenuPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
           setShowContextMenu(true);
         } else {
           showToast("Right-click is disabled!");
         }
       });
     }
+
     editor.onDidPaste(() => {
       showToast("Pasting is not allowed!");
-      editor.trigger("keyboard", "undo"); // undo any pasted content
+      editor.trigger("keyboard", "undo");
     });
-    // Disable clipboard shortcuts
+
     editor.onKeyDown((e) => {
-      if (e.ctrlKey || e.metaKey) {
-        if (["KeyV", "KeyC", "KeyX"].includes(e.code)) {
-          e.preventDefault();
-          showToast("Clipboard actions are disabled!");
-        }
+      if ((e.ctrlKey || e.metaKey) && ["KeyV", "KeyC", "KeyX"].includes(e.code)) {
+        e.preventDefault();
+        showToast("Clipboard actions are disabled!");
       }
-   editor.addCommand(0, () => {
-    // showToast("Copy with syntax highlighting is disabled!");
-  }, "editor.action.clipboardCopyWithSyntaxHighlightingAction");
+     
+    });
+editor.addAction({
+  id: "editor.action.clipboardCopyWithSyntaxHighlightingAction",
+  label: "Copy with Syntax Highlighting",
+  keybindings: [], // remove any keyboard triggers
+  precondition: null,
+  run: function (ed) {
+    showToast("This command is disabled!");
+    return null; // prevents actual copy
+  },
+});
+editor.addAction({
+  id: "editor.action.pasteAsText",
+  label: "Paste as Text",
+  keybindings: [],
+  precondition: null,
+  run: function (ed) {
+    showToast("This command is disabled!");
+    return null;
+  },
+});
+
+editor.addAction({
+  id: "editor.action.pasteAs",
+  label: "Paste As…",
+  keybindings: [],
+  precondition: null,
+  run: function (ed) {
+    showToast("This command is disabled!");
+    return null;
+  },
+});
+
+
+
+    editor.onDidType((text) => {
+      // ✅ Works only if language is C
+      if (langRef.current === "c" && text === "#") {
+        editor.trigger("keyboard", "editor.action.triggerSuggest");
+      }
     });
 
-// ✅ Improved IntelliSense for Python
-monaco.languages.registerCompletionItemProvider("python", {
-  triggerCharacters: ["."], // trigger only when '.' is typed
-  provideCompletionItems: (model, position) => {
-    const lineContent = model.getLineContent(position.lineNumber);
-    
-    // Don't suggest inside quotes (strings) or comments
-    const textBeforeCursor = lineContent.substring(0, position.column - 1);
-    if (/["'].*$/.test(textBeforeCursor) || /^\s*#/.test(textBeforeCursor)) {
-      return { suggestions: [] };
-    }
 
-    return {
-      suggestions: [
-        {
-          label: "def",
-          kind: monaco.languages.CompletionItemKind.Keyword,
-          insertText: "def ${1:func_name}(${2:args}):\n    ${3:pass}",
-          insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-          documentation: "Define a function"
-        },
-        {
-          label: "class",
-          kind: monaco.languages.CompletionItemKind.Keyword,
-          insertText: "class ${1:ClassName}(${2:object}):\n    ${3:pass}",
-          insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-          documentation: "Define a class"
-        },
-        {
-          label: "if",
-          kind: monaco.languages.CompletionItemKind.Keyword,
-          insertText: "if ${1:condition}:\n    ${2:pass}",
-          insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-          documentation: "If statement"
-        },
-        {
-          label: "elif",
-          kind: monaco.languages.CompletionItemKind.Keyword,
-          insertText: "elif ${1:condition}:\n    ${2:pass}",
-          insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-          documentation: "Else if statement"
-        },
-        {
-          label: "else",
-          kind: monaco.languages.CompletionItemKind.Keyword,
-          insertText: "else:\n    ${1:pass}",
-          insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-          documentation: "Else statement"
-        },
-        {
-          label: "for",
-          kind: monaco.languages.CompletionItemKind.Snippet,
-          insertText: "for ${1:item} in ${2:iterable}:\n    ${3:pass}",
-          insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-          documentation: "For loop"
-        },
-        {
-          label: "while",
-          kind: monaco.languages.CompletionItemKind.Snippet,
-          insertText: "while ${1:condition}:\n    ${2:pass}",
-          insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-          documentation: "While loop"
-        },
-        {
-          label: "print",
-          kind: monaco.languages.CompletionItemKind.Function,
-          insertText: "print(${1:msg})",
-          insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-          documentation: "Print output"
-        },
-        {
-          label: "len",
-          kind: monaco.languages.CompletionItemKind.Function,
-          insertText: "len(${1:iterable})",
-          documentation: "Length of iterable"
-        },
-        {
-          label: "range",
-          kind: monaco.languages.CompletionItemKind.Function,
-          insertText: "range(${1:stop})",
-          documentation: "Generate range"
-        },
-        {
-          label: "input",
-          kind: monaco.languages.CompletionItemKind.Function,
-          insertText: "input(${1:prompt})",
-          documentation: "Get user input"
-        },
-        {
-          label: "import math",
-          kind: monaco.languages.CompletionItemKind.Module,
-          insertText: "import math",
-          documentation: "Math module"
-        },
-        {
-          label: "import os",
-          kind: monaco.languages.CompletionItemKind.Module,
-          insertText: "import os",
-          documentation: "OS module"
-        }
-      ]
-    };
   }
-});
-
-
-// ✅ Improved IntelliSense for C
-monaco.languages.registerCompletionItemProvider("c", {
-  triggerCharacters: ["."], // optional: trigger only on certain characters
-  provideCompletionItems: (model, position) => {
-    const lineContent = model.getLineContent(position.lineNumber);
-
-    // Don't suggest inside strings or comments
-    const textBeforeCursor = lineContent.substring(0, position.column - 1);
-    if (/".*$/.test(textBeforeCursor) || /\/\/.*$/.test(textBeforeCursor) || /\/\*.*$/.test(textBeforeCursor)) {
-      return { suggestions: [] };
-    }
-
-    return {
-      suggestions: [
-        {
-          label: "#include <stdio.h>",
-          kind: monaco.languages.CompletionItemKind.Snippet,
-          insertText: "#include <stdio.h>\n",
-          documentation: "Standard I/O library"
-        },
-        {
-          label: "#include <stdlib.h>",
-          kind: monaco.languages.CompletionItemKind.Snippet,
-          insertText: "#include <stdlib.h>\n",
-          documentation: "Standard library"
-        },
-        {
-          label: "#include <string.h>",
-          kind: monaco.languages.CompletionItemKind.Snippet,
-          insertText: "#include <string.h>\n",
-          documentation: "String manipulation library"
-        },
-        {
-          label: "#include <math.h>",
-          kind: monaco.languages.CompletionItemKind.Snippet,
-          insertText: "#include <math.h>\n",
-          documentation: "Math library"
-        },
-        {
-          label: "main",
-          kind: monaco.languages.CompletionItemKind.Snippet,
-          insertText: "int main() {\n    ${1:/* code */}\n    return 0;\n}",
-          insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-          documentation: "Main function"
-        },
-        {
-          label: "for loop",
-          kind: monaco.languages.CompletionItemKind.Snippet,
-          insertText: "for(int ${1:i} = 0; ${1:i} < ${2:n}; ${1:i}++) {\n    ${3:/* code */}\n}",
-          insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-          documentation: "For loop"
-        },
-        {
-          label: "while loop",
-          kind: monaco.languages.CompletionItemKind.Snippet,
-          insertText: "while(${1:condition}) {\n    ${2:/* code */}\n}",
-          insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-          documentation: "While loop"
-        },
-        {
-          label: "do-while loop",
-          kind: monaco.languages.CompletionItemKind.Snippet,
-          insertText: "do {\n    ${1:/* code */}\n} while(${2:condition});",
-          insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-          documentation: "Do-while loop"
-        },
-        {
-          label: "if statement",
-          kind: monaco.languages.CompletionItemKind.Snippet,
-          insertText: "if(${1:condition}) {\n    ${2:/* code */}\n}",
-          insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-          documentation: "If statement"
-        },
-        {
-          label: "else",
-          kind: monaco.languages.CompletionItemKind.Snippet,
-          insertText: "else {\n    ${1:/* code */}\n}",
-          insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-          documentation: "Else statement"
-        },
-        {
-          label: "switch",
-          kind: monaco.languages.CompletionItemKind.Snippet,
-          insertText: "switch(${1:variable}) {\n    case ${2:value}:\n        ${3:/* code */}\n        break;\n    default:\n        ${4:/* code */}\n}",
-          insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-          documentation: "Switch statement"
-        },
-        {
-          label: "printf",
-          kind: monaco.languages.CompletionItemKind.Function,
-          insertText: "printf(\"${1:text}\\n\");",
-          documentation: "Print output"
-        },
-        {
-          label: "scanf",
-          kind: monaco.languages.CompletionItemKind.Function,
-          insertText: "scanf(\"${1:format}\", &${2:var});",
-          documentation: "Read input"
-        },
-        {
-          label: "malloc",
-          kind: monaco.languages.CompletionItemKind.Function,
-          insertText: "malloc(sizeof(${1:type}) * ${2:size})",
-          documentation: "Allocate memory"
-        },
-        {
-          label: "free",
-          kind: monaco.languages.CompletionItemKind.Function,
-          insertText: "free(${1:pointer});",
-          documentation: "Free allocated memory"
-        },
-        {
-          label: "strlen",
-          kind: monaco.languages.CompletionItemKind.Function,
-          insertText: "strlen(${1:str})",
-          documentation: "Get string length"
-        },
-        {
-          label: "strcpy",
-          kind: monaco.languages.CompletionItemKind.Function,
-          insertText: "strcpy(${1:dest}, ${2:src});",
-          documentation: "Copy string"
-        },
-        {
-          label: "strcat",
-          kind: monaco.languages.CompletionItemKind.Function,
-          insertText: "strcat(${1:dest}, ${2:src});",
-          documentation: "Concatenate strings"
-        },
-        {
-          label: "pow",
-          kind: monaco.languages.CompletionItemKind.Function,
-          insertText: "pow(${1:base}, ${2:exp})",
-          documentation: "Raise base to exponent"
-        },
-        {
-          label: "sqrt",
-          kind: monaco.languages.CompletionItemKind.Function,
-          insertText: "sqrt(${1:number})",
-          documentation: "Square root"
-        }
-      ]
-    };
-  }
-});
-
-  };
 
   // Starter templates
   const templates = {
@@ -439,7 +299,9 @@ monaco.languages.registerCompletionItemProvider("c", {
             lineNumbers: "on",
             autoClosingBrackets: "always",
             autoClosingQuotes: "always",
-            quickSuggestions: true,
+            quickSuggestions: { other: true, comments: false, strings: false },
+
+            wordBasedSuggestions: false,
             suggestOnTriggerCharacters: true,
             parameterHints: { enabled: true },
             tabSize: 4,

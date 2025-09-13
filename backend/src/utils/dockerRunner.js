@@ -44,7 +44,7 @@ module.exports = function runCode(code, lang = "python", stdinInput = "") {
       const cmd = `
         mkdir -p /tmp/${uniqueId} &&
         printf "%s" '${escapedCode.replace(/'/g, "'\\''")}' > /tmp/${uniqueId}/code.c &&
-        gcc /tmp/${uniqueId}/code.c -o /tmp/${uniqueId}/a.out &&
+        gcc /tmp/${uniqueId}/code.c -o /tmp/${uniqueId}/a.out -lm &&
         printf "%s" '${stdinInput.replace(/'/g, "'\\''")}' | timeout 5 /tmp/${uniqueId}/a.out
       `;
 
